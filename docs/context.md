@@ -6,34 +6,43 @@
 - **Repositorio:** `RafaelZamorag/Agente-Persistente`
 - **Rama principal:** `main`
 - **Propietario:** Rafael Enrique Zamora García
-- **Idioma de documentación:** español latinoamericano
+- **Documentación:** español latinoamericano
 
 ## Misión
 
-Construir un agente académico que analice eventos deportivos y comunique probabilidades explicables en tiempo real, sin ejecutar apuestas y sin afirmar certeza.
+Agente académico que analiza eventos deportivos de forma periódica y comunica probabilidades explicables y auditables, sin ejecutar apuestas y sin afirmar certeza.
 
-## Arquitectura vigente
+## Estado actual (v0.3.1)
 
-El sistema usa arquitectura hexagonal. `app/domain` contiene reglas y entidades; `app/application` contiene puertos y casos de uso; `app/adapters/inbound` contiene HTTP; `app/adapters/outbound` contiene proveedores; `app/bootstrap.py` ensambla dependencias. `app/main.py` funciona como composition root HTTP.
+Arquitectura hexagonal completa con runtime visible. El agente se autodispara al arrancar y cada `AGENT_INTERVAL_SECONDS`, registra cada ciclo en JSONL y se observa en la consola de `frontend/`. El modelo es un baseline logístico calibrado, explicable, con margen de casa, cuota justa y guardia de divergencia.
 
-## Principios
+Métricas de la última verificación: 32 pruebas unitarias y de integración, `ruff` limpio, servidor real ejecutando ciclos automáticos, consola renderizada sin errores de navegador.
 
-1. Evidencia antes que intuición.
-2. Separar datos, modelo, explicación y decisión humana.
-3. Registrar fuente, hora y versión del modelo.
-4. No almacenar secretos ni credenciales.
-5. Diseñar para auditoría y reproducibilidad.
-6. Incluir uso responsable en cada interfaz.
-7. Hacer que las dependencias apunten hacia el dominio.
+## Decisiones vigentes
 
-## Estado actual
+| Área | Decisión | Motivo |
+|---|---|---|
+| Arquitectura | Hexagonal con puertos y composition root | Sustituir proveedor o entrada sin tocar el dominio |
+| Datos | `DemoSportsDataAdapter` | Reproducibilidad y exposición sin API externa |
+| Modelo | Baseline logístico v0.2 | Explicable en clase, sin dataset validado aún |
+| Runtime | `asyncio` en `lifespan` de FastAPI | Persistente dentro del proceso, sin dependencias externas |
+| Registro | JSONL en `data/agent_runs.jsonl` | Auditoría legible y cero dependencias; excluido de Git |
+| Pruebas | Temporizador y disco desactivados en `conftest.py` | Determinismo y ausencia de esperas reales |
 
-El MVP usa `DemoSportsDataAdapter`, un modelo base explicable y casos de uso independientes. Antes de usar datos reales se debe completar T011, establecer términos del proveedor, validar calidad temporal y realizar backtesting.
+## Defectos corregidos (memoria de ingeniería)
+
+1. **Sin autodisparo.** El `lifespan` estaba definido pero no se inyectaba en `FastAPI(...)`. Síntoma: `running: false`, `total_runs: 0`. Corrección: `lifespan_hooks` expuesto por el composition root. Prueba de regresión: `tests/test_agent_lifespan.py`.
+2. **Señales irreales.** El baseline asignaba ~17 % al empate y las cuotas demo eran incoherentes, dando un EV de +59 %. Corrección: banda de empate 16 %–32 %, cuotas demo recalibradas, margen de casa, cuota justa y aviso si la divergencia es ≥15 pp.
+3. **Barras invisibles.** Un `span` en línea ignoraba `width`, por lo que la barra no se pintaba. Corrección: `display: block` en `.bar-fill`.
+4. **Duración en 0 ms.** Restar `datetime` perdía resolución. Corrección: `time.perf_counter` y campo `float`.
+
+## Límites conocidos
+
+Datos de demostración, sin backtesting, sin calibración empírica y sin validación de mercado. La consola usa sondeo, no SSE. Ninguna métrica de rendimiento del modelo ha sido publicada todavía.
 
 ## Próxima sesión recomendada
 
-1. Elegir una liga y proveedor de datos permitido.
-2. Implementar un adaptador real detrás de `SportsDataPort`.
-3. Definir esquema de snapshots históricos.
-4. Implementar backtesting sin fuga de información.
-5. Calibrar probabilidades y reportar Brier score, log loss y ROI simulado con advertencias.
+1. Elegir liga y proveedor con licencia explícita.
+2. Implementar `outbound/api_sports_data.py` detrás de `SportsDataPort`.
+3. Definir el esquema de snapshots históricos y capturarse antes del inicio del evento.
+4. Implementar backtesting sin fuga temporal y reportar Brier score, log loss y ROI simulado con advertencias.

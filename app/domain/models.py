@@ -42,11 +42,14 @@ class Prediction(BaseModel):
     data_source: str
     probabilities: dict[Outcome, float]
     implied_probabilities: dict[Outcome, float]
+    fair_odds: dict[Outcome, float] = Field(default_factory=dict)
+    bookmaker_margin: float = 0.0
     edge: dict[Outcome, float]
     expected_value: dict[Outcome, float]
     recommendation: str
     confidence: str
     explanation: list[str]
+    warnings: list[str] = Field(default_factory=list)
     missing_data: list[str] = Field(default_factory=list)
     responsible_use: str = (
         "Salida educativa y probabilística; no garantiza resultados ni sustituye "

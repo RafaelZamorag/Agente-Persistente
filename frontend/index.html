@@ -3,45 +3,79 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Agente Persistente · Sports Lab</title>
-  <style>
-    :root { color-scheme: dark; --bg:#0b1020; --panel:#151d33; --line:#2a385b; --accent:#67e8b5; --muted:#a9b5cf; }
-    * { box-sizing: border-box; } body { margin:0; font-family: Inter, system-ui, sans-serif; background:linear-gradient(135deg,#0b1020,#111b31); color:#f4f7fb; }
-    main { max-width:1100px; margin:0 auto; padding:40px 20px; } .eyebrow { color:var(--accent); letter-spacing:.12em; text-transform:uppercase; font-size:.75rem; font-weight:700; }
-    h1 { font-size:clamp(2rem,5vw,4rem); margin:.25rem 0 1rem; max-width:800px; } .intro { color:var(--muted); max-width:760px; line-height:1.6; }
-    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px; margin-top:30px; } .card { background:rgba(21,29,51,.9); border:1px solid var(--line); border-radius:18px; padding:22px; box-shadow:0 18px 50px #0003; }
-    .meta { color:var(--muted); font-size:.9rem; } .probabilities { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:18px 0; } .prob { background:#0e1629; border-radius:12px; padding:12px; text-align:center; } .prob strong { display:block; font-size:1.35rem; color:var(--accent); }
-    .badge { display:inline-block; color:#08120f; background:var(--accent); border-radius:999px; padding:6px 10px; font-size:.8rem; font-weight:700; } .warning { color:#ffd59a; font-size:.84rem; line-height:1.45; border-top:1px solid var(--line); padding-top:14px; }
-    ul { padding-left:20px; color:var(--muted); line-height:1.55; } button { background:var(--accent); border:0; border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer; } button:hover { filter:brightness(1.1); }
-    footer { color:var(--muted); margin-top:30px; font-size:.85rem; } .error { color:#ff9d9d; }
-  </style>
+  <title>Agente Persistente · Consola de análisis deportivo</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232ee0a6'/%3E%3Ctext x='16' y='21' font-size='14' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%2305131b'%3EAP%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/assets/styles.css" />
 </head>
 <body>
-<main>
-  <div class="eyebrow">Sports Lab · MVP académico</div>
-  <h1>Predicciones explicables, no promesas.</h1>
-  <p class="intro">Este dashboard consume la API del Agente Persistente. Compara un baseline reproducible con las cuotas de demostración y muestra por qué se genera cada señal.</p>
-  <div id="status" class="meta">Cargando partidos…</div>
-  <section id="fixtures" class="grid"></section>
-  <footer>Uso educativo y responsable. No ejecuta apuestas, no garantiza resultados y requiere validación histórica antes de conectar datos reales.</footer>
-</main>
-<script>
-const money = value => `${(value * 100).toFixed(1)}%`;
-async function load() {
-  const status = document.querySelector('#status'); const root = document.querySelector('#fixtures');
-  try {
-    const response = await fetch('/api/v1/fixtures'); if (!response.ok) throw new Error('No se pudieron cargar los partidos');
-    const data = await response.json(); status.textContent = `Fuente: ${data.source} · ${data.fixtures.length} partidos`;
-    for (const fixture of data.fixtures) {
-      const prediction = await fetch(`/api/v1/predictions/${fixture.id}`).then(r => r.json());
-      const labels = [['home', fixture.home.name], ['draw', 'Empate'], ['away', fixture.away.name]];
-      const card = document.createElement('article'); card.className = 'card';
-      card.innerHTML = `<span class="badge">${prediction.confidence} confianza</span><h2>${fixture.home.name} vs ${fixture.away.name}</h2><div class="meta">${fixture.league} · Cuotas ${fixture.odds.home} / ${fixture.odds.draw} / ${fixture.odds.away}</div><div class="probabilities">${labels.map(([key,label]) => `<div class="prob"><small>${label}</small><strong>${money(prediction.probabilities[key])}</strong><small>edge ${money(prediction.edge[key])}</small></div>`).join('')}</div><p><strong>${prediction.recommendation}</strong></p><ul>${prediction.explanation.map(item => `<li>${item}</li>`).join('')}</ul><p class="warning">${prediction.responsible_use}</p>`;
-      root.appendChild(card);
-    }
-  } catch (error) { status.innerHTML = `<span class="error">${error.message}</span>`; }
-}
-load();
-</script>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">AP</span>
+      <div>
+        <p class="eyebrow">Arquitectura hexagonal · MVP académico</p>
+        <h1>Consola del agente</h1>
+      </div>
+    </div>
+    <div class="statusbar" id="statusbar">
+      <span class="pill pill-neutral" id="status-pill">Conectando…</span>
+      <div class="countdown"><span>Próximo ciclo</span><strong id="countdown">--:--</strong></div>
+      <div class="countdown"><span>Ciclos registrados</span><strong id="total-runs">0</strong></div>
+    </div>
+  </header>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <section class="toolbar">
+    <div class="toolbar-left">
+      <button class="btn btn-primary" id="run-now">Ejecutar análisis ahora</button>
+      <label class="refresh">
+        Actualización automática
+        <select id="refresh-interval">
+          <option value="0">Desactivada</option>
+          <option value="2000">2 s</option>
+          <option value="5000" selected>5 s</option>
+          <option value="15000">15 s</option>
+        </select>
+      </label>
+    </div>
+    <div class="toolbar-right">
+      <span class="chip" id="model-chip">modelo —</span>
+      <span class="chip" id="source-chip">fuente —</span>
+      <span class="chip" id="interval-chip">intervalo —</span>
+      <span class="chip chip-quiet" id="sync-time">sin sincronizar</span>
+    </div>
+  </section>
+
+  <main class="layout">
+    <section class="column column-main">
+      <h2 class="section-title">Análisis de partidos</h2>
+      <p class="section-hint">Probabilidades del baseline, edge frente a la cuota y explicación de cada señal.</p>
+      <div class="cards" id="fixtures"><article class="card skeleton">Cargando fixtures…</article></div>
+    </section>
+
+    <aside class="column column-side">
+      <h2 class="section-title">Registro del agente</h2>
+      <p class="section-hint">Cada línea muestra instante de ejecución, disparador, duración y modelo invocado.</p>
+      <ol class="timeline" id="runs"><li class="empty">Sin ejecuciones todavía.</li></ol>
+      <div class="log-meta">
+        <span>Registro persistente</span>
+        <code id="log-path">data/agent_runs.jsonl</code>
+      </div>
+    </aside>
+  </main>
+
+  <section class="metrics">
+    <div class="metric"><span>Fixtures analizados</span><strong id="m-fixtures">0</strong></div>
+    <div class="metric"><span>Señales con EV positivo</span><strong id="m-positive">0</strong></div>
+    <div class="metric"><span>Mejor EV observado</span><strong id="m-best">—</strong></div>
+    <div class="metric"><span>Duración media del ciclo</span><strong id="m-duration">—</strong></div>
+  </section>
+
+  <footer class="footer">
+    <p><strong>Uso responsable.</strong> Herramienta educativa y probabilística: no ejecuta apuestas, no garantiza resultados y no sustituye el criterio humano. Los datos mostrados son de demostración hasta completar T013 (adaptador real + backtesting).</p>
+    <nav><a href="/docs" target="_blank" rel="noreferrer">API OpenAPI</a><a href="/health" target="_blank" rel="noreferrer">Health</a></nav>
+  </footer>
+
+  <script src="/assets/app.js"></script>
 </body>
 </html>

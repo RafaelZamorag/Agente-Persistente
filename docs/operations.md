@@ -1,37 +1,60 @@
 # Operación y recomendaciones
 
-## Ejecución local
+## Instalación y ejecución
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
-pip install -e '.[dev]'
-uvicorn app.main:app --reload
+source .venv/bin/activate          # Windows: .\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -e ".[dev]"
+python -m uvicorn app.main:app --reload
 ```
 
-Abrir `http://127.0.0.1:8000` y la documentación en `http://127.0.0.1:8000/docs`.
+Consola: `http://127.0.0.1:8000` · OpenAPI: `http://127.0.0.1:8000/docs` · Estado: `http://127.0.0.1:8000/health`.
 
-## Variables
+El agente queda activo mientras el proceso esté vivo. Para una demostración con ciclos visibles, reducir el intervalo:
 
-Copiar `.env.example` como `.env`. El MVP no necesita credenciales.
+```bash
+AGENT_INTERVAL_SECONDS=15 python -m uvicorn app.main:app
+```
 
-## Antes de datos reales
+## Verificación rápida antes de exponer
 
-- Verificar licencia, límites y atribución del proveedor.
-- Guardar hora de captura de cuotas y eventos.
-- Evitar mezclar información posterior al inicio del partido.
-- Versionar transformaciones y modelos.
-- Hacer backtesting temporal, nunca una partición aleatoria ingenua.
-- Reportar calibración, Brier score y log loss, además de cualquier ROI simulado.
+```bash
+pytest -q && ruff check .
+curl -s localhost:8000/api/v1/agent/status | python3 -m json.tool
+sleep 30
+curl -s "localhost:8000/api/v1/agent/runs?limit=5" | python3 -m json.tool
+```
 
-## Recomendaciones para la exposición
+Comprobaciones esperadas: `running: true`, `total_runs` creciendo sin intervención, una línea JSON por corrida en `data/agent_runs.jsonl` y barras de probabilidad visibles en la consola.
 
-1. Explicar que una probabilidad no es una garantía.
-2. Mostrar la diferencia entre cuota decimal y probabilidad implícita.
-3. Enseñar cómo cambia el resultado al variar la fuerza o la cuota.
-4. Presentar el modo demo como una decisión de reproducibilidad.
-5. Mostrar las tareas pendientes: datos reales, backtesting y calibración.
+## Variables del runtime
+
+| Variable | Por defecto | Nota |
+|---|---|---|
+| `AGENT_ENABLED` | `true` | `false` pausa el ciclo automático; el botón manual sigue funcionando |
+| `AGENT_INTERVAL_SECONDS` | `600` | Mínimo aplicado por código: 5 s |
+| `AGENT_STARTUP_RUN` | `true` | Útil para que la consola muestre datos al abrirla |
+| `RUNS_FILE` | `data/agent_runs.jsonl` | Dato operativo; excluido de Git |
+
+## Antes de conectar datos reales
+
+- Verificar licencia, atribución y límites de petición del proveedor.
+- Guardar la hora de captura de cada cuota y del inicio del evento.
+- Nunca usar información posterior al inicio del partido como si fuera previa.
+- Versionar transformaciones y modelo; el `model_version` viaja en cada respuesta.
+- Publicar métricas de calibración, no solo señales.
+
+## Guion sugerido para la exposición
+
+1. Mostrar la consola y señalar que el contador de ciclos sube solo: el agente está corriendo.
+2. Abrir `data/agent_runs.jsonl` y explicar que cada línea es evidencia auditable.
+3. Comparar “mayor probabilidad” con “señal de valor” en un mismo partido.
+4. Explicar el margen de la casa: por qué casi todas las cuotas reales dan EV negativo.
+5. Mostrar el aviso de divergencia y argumentar que detectar datos malos vale más que fingir precisión.
+6. Cerrar con la hoja de ruta: proveedor real, backtesting y calibración.
 
 ## Límites éticos
 
-Este sistema es educativo y analítico. No debe incentivar apuestas compulsivas, perseguir pérdidas ni automatizar decisiones financieras. Si se conecta a una interfaz real, debe mantenerse en modo solo lectura y exigir confirmación humana explícita.
+Sistema educativo y analítico. No debe incentivar apuestas compulsivas, perseguir pérdidas, automatizar decisiones financieras ni presentarse como fuente de ingresos. Cualquier integración futura con interfaces de apuestas se mantiene en modo solo lectura y con confirmación humana explícita.

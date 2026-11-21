@@ -4,7 +4,7 @@ La aplicación se organiza alrededor de casos de uso. El centro no conoce FastAP
 
 ```text
                  Adaptador de entrada
-                 FastAPI / dashboard
+                 FastAPI (HTTP)  |  Temporizador (reloj)
                          |
                          v
               Puertos de entrada (inbound)
@@ -14,10 +14,12 @@ La aplicación se organiza alrededor de casos de uso. El centro no conoce FastAP
               /                       \\
              v                         v
   Puerto de salida               Dominio
-  SportsDataPort          PredictionEngine + entidades
+  SportsDataPort / RunRepositoryPort
+  / SchedulerStatePort     PredictionEngine + entidades
              ^
              |
-  Adaptador de salida demo/API real
+  DemoSportsDataAdapter / API real futura
+  FilesystemRunRepository (JSONL)
 ```
 
 ## Reglas
@@ -27,8 +29,9 @@ La aplicación se organiza alrededor de casos de uso. El centro no conoce FastAP
 3. `app/application/ports` define contratos, no implementaciones.
 4. `app/adapters/inbound` transforma HTTP en llamadas a casos de uso.
 5. `app/adapters/outbound` transforma una fuente externa en entidades del dominio.
-6. `app/bootstrap.py` es el único lugar que ensambla implementaciones concretas.
-7. `app/main.py` no contiene lógica de negocio; solo crea la aplicación.
+6. `app/bootstrap.py` es el único lugar que ensambla implementaciones concretas y define el `lifespan` que arranca y detiene el temporizador.
+7. `app/main.py` no contiene lógica de negocio; solo crea el contenedor y la aplicación HTTP.
+8. Un adaptador de entrada puede ser conducido por una petición (HTTP) o por el reloj (`AgentTimerScheduler`); ambos invocan los mismos puertos inbound.
 
 ## Cómo agregar un proveedor real
 

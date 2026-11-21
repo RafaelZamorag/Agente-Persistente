@@ -1,53 +1,63 @@
 # Arquitectura hexagonal
 
 ```text
-Dashboard HTML
-      |
-      v
-Adaptador de entrada HTTP / FastAPI
-      |
-      v
-Puertos inbound
-      |
-      v
-Casos de uso: ListFixtures / PredictFixture
-      |
-      +--> Puerto outbound: SportsDataPort
-      |          ^
-      |          |
-      |   DemoSportsDataAdapter
-      |   (futuro: API real)
-      |
-      +--> Dominio: PredictionEngine + entidades
+        Consola web (frontend)            Cliente REST / curl
+                |                                   |
+   +------------+-----------------------------------+-------------+
+   |  ADAPTADORES DE ENTRADA                                     |
+   |  inbound/http.py  FastAPI      inbound/timer_scheduler.py    |
+   |  (lifespan -> start/stop)      ciclo por reloj (SCHEDULE)    |
+   +------------+-----------------------------------+-------------+
+                v                                   v
+        PUERTOS INBOUND (Protocol)          run_now(trigger)
+        ListFixtures / PredictFixture
+        RunAnalysisCycle / ListAgentRuns
+        GetAgentStatus
+                |                                   |
+                v                                   v
+        CASOS DE USO (application/use_cases)
+        ListFixtures  PredictFixture  RunAnalysisCycle
+        ListAgentRuns GetAgentStatus
+                |                        |
+                v                        v
+   DOMINIO: PredictionEngine      PUERTOS OUTBOUND
+   entidades Fixture/Prediction    SportsDataPort   RunRepositoryPort
+   AgentRun/RunSignal              SchedulerStatePort
+                                       |                 |
+                                       v                 v
+                        ADAPTADORES OUTBOUND (demo/API futura)
+                        DemoSportsDataAdapter  FilesystemRunRepository
+                        InMemoryRunRepository
 ```
+
+`bootstrap.py` (composition root) es el único módulo que conoce las implementaciones concretas y construye el `lifespan` que engancha el temporizador al ciclo de vida del servidor. `main.py` solo llama `build_container()` y `create_http_app(container)`.
 
 ## Capas
 
-### Dominio
+### Dominio (`app/domain`)
 
-`app/domain` contiene `Fixture`, `Odds`, `Prediction`, `Outcome` y `PredictionEngine`. No conoce HTTP, FastAPI ni proveedores concretos.
+Entidades del problema: `Fixture`, `Odds`, `TeamProfile`, `Outcome`, `Prediction`, `AgentRun`, `RunSignal`, `AgentSchedulerState`. Reglas: `PredictionEngine`, que también calcula probabilidad implícita, margen de casa y cuota justa. No hay importaciones de FastAPI, `asyncio`, `pathlib` ni SDKs.
 
-### Aplicación
+### Aplicación (`app/application`)
 
-`app/application/use_cases` contiene `ListFixtures` y `PredictFixture`. Cada caso de uso tiene una sola responsabilidad y recibe dependencias mediante puertos. `app/application/ports` define los contratos inbound y outbound.
+`ports/inbound` define lo que el exterior puede pedir. `ports/outbound` define lo que el agente necesita del exterior. `use_cases` orquesta: `RunAnalysisCycle` obtiene fixtures, pide predicciones y deja evidencia de la corrida, incluyendo el fallo. Cada caso de uso tiene una sola responsabilidad.
 
-### Adaptadores
+### Adaptadores (`app/adapters`)
 
-`app/adapters/inbound/http.py` convierte solicitudes HTTP en llamadas a casos de uso y traduce resultados a respuestas JSON. `app/adapters/outbound/demo_sports_data.py` implementa el puerto de datos con fixtures reproducibles.
+`inbound/http.py` traduce REST a casos de uso y sirve la consola. `inbound/timer_scheduler.py` convierte el reloj en llamadas al caso de uso. `outbound/*` implementan `SportsDataPort` y `RunRepositoryPort`.
 
-### Composición
+## Flujo de un ciclo automático
 
-`app/bootstrap.py` es el composition root: crea el proveedor, el motor y los casos de uso. `app/main.py` solo conecta el contenedor con el adaptador HTTP.
+1. El temporizador cumple el intervalo y llama `RunAnalysisCycle.execute(SCHEDULE)`.
+2. El caso de uso pide fixtures a `SportsDataPort`.
+3. Para cada fixture invoca `PredictFixture`, que usa `PredictionEngine`.
+4. Se construye `AgentRun` con inicio, fin, duración, modelo, fuente y señales.
+5. Se guarda en `RunRepositoryPort` (JSONL hoy).
+6. La consola lee `/api/v1/agent/runs` y `/api/v1/agent/status`.
 
-## Flujo de una predicción
+## Reglas de evolución
 
-1. HTTP recibe un `fixture_id`.
-2. El adaptador inbound invoca `PredictFixture.execute`.
-3. El caso de uso consulta `SportsDataPort`.
-4. El caso de uso entrega el fixture a `PredictionEngine`.
-5. El dominio calcula probabilidades, edge y explicación.
-6. El adaptador devuelve la respuesta auditable.
-
-## Regla de evolución
-
-Para agregar un proveedor real, crear un nuevo adaptador que implemente `SportsDataPort` y modificar únicamente `build_container`. Los casos de uso y el dominio no deben importar SDKs externos.
+- Nuevo proveedor: crear un adaptador que implemente `SportsDataPort`; cambiar solo `build_container`.
+- Nuevo almacenamiento: implementar `RunRepositoryPort`; casos de uso intactos.
+- Nueva entrada (CLI, bot de Telegram): invocar los mismos puertos inbound.
+- Nunca importar un SDK externo en `app/domain`.

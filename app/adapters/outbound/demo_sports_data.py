@@ -18,7 +18,7 @@ class DemoSportsDataAdapter:
                 starts_at=now + timedelta(hours=2),
                 home=TeamProfile(name="Aurora FC", strength=78, recent_form=0.76),
                 away=TeamProfile(name="Río Norte", strength=72, recent_form=0.61),
-                odds=Odds(home=1.90, draw=3.60, away=4.20),
+                odds=Odds(home=1.90, draw=3.70, away=3.95),
             ),
             Fixture(
                 id="demo-002",
@@ -26,7 +26,7 @@ class DemoSportsDataAdapter:
                 starts_at=now + timedelta(hours=5),
                 home=TeamProfile(name="Cóndor Unido", strength=65, recent_form=0.55),
                 away=TeamProfile(name="Estrella Sur", strength=67, recent_form=0.70),
-                odds=Odds(home=2.55, draw=3.20, away=2.65),
+                odds=Odds(home=2.60, draw=3.40, away=2.75),
             ),
         ]
 

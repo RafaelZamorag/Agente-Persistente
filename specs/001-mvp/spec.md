@@ -42,6 +42,6 @@ Las cuotas deportivas cambian en tiempo real y es difícil comparar una probabil
 ## Decisiones de diseño
 
 - **Modelo:** baseline ponderado por fuerza relativa, forma reciente y ventaja de localía. Es intencionalmente explicable; no se presenta como modelo validado para apuestas reales.
-- **Datos:** contrato `SportsDataProvider`; `DemoSportsDataProvider` para desarrollo y exposición.
+- **Datos:** puerto `SportsDataPort`; `DemoSportsDataAdapter` para desarrollo y exposición.
 - **Transparencia:** toda predicción lleva `model_version`, `generated_at`, `data_source`, `missing_data` y `explanation`.
 - **Seguridad:** no se guardan tokens en Git; configuración por variables de entorno.

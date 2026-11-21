@@ -25,6 +25,13 @@
 - Servir dashboard estático.
 - Añadir endpoint de documentación OpenAPI automático.
 
+## Fase 6 — Arquitectura hexagonal
+
+- Separar dominio, aplicación, puertos y adaptadores.
+- Encapsular cada acción en un caso de uso independiente.
+- Usar un composition root para invertir dependencias.
+- Probar casos de uso con adaptadores falsos.
+
 ## Fase 5 — Validación y entrega
 
 - Ejecutar pruebas unitarias y de API.

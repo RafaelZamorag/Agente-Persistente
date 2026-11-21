@@ -31,7 +31,7 @@ El proveedor demo entrega dos fixtures deterministas. El baseline pondera fuerza
 ## Estructura
 
 ```text
-app/                  Código del dominio, proveedores, servicios y API.
+app/                  Dominio, aplicación, puertos, adaptadores y composición.
 frontend/             Dashboard HTML sin dependencias externas.
 specs/001-mvp/        Spec, plan y tareas del primer incremento.
 docs/                 Contexto persistente, arquitectura y operación.
@@ -41,7 +41,7 @@ tests/                Pruebas unitarias y de API.
 
 ## Método de trabajo
 
-Cada incremento nuevo debe crear o actualizar `specs/<id>/spec.md`, `plan.md` y `tasks.md`. `docs/context.md` conserva decisiones y el siguiente paso recomendado entre sesiones. El código debe mantener separado el proveedor de datos, el motor, la explicación y la interfaz.
+Cada incremento nuevo debe crear o actualizar `specs/<id>/spec.md`, `plan.md` y `tasks.md`. `docs/context.md` conserva decisiones y el siguiente paso recomendado entre sesiones. El código sigue arquitectura hexagonal: el dominio y los casos de uso no conocen FastAPI ni SDKs externos; los puertos definen contratos y los adaptadores implementan detalles.
 
 ## Próximos incrementos
 

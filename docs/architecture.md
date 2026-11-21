@@ -1,49 +1,53 @@
-# Arquitectura
+# Arquitectura hexagonal
 
 ```text
 Dashboard HTML
       |
       v
- FastAPI REST  ---> Health / OpenAPI
+Adaptador de entrada HTTP / FastAPI
       |
       v
- PredictionService
+Puertos inbound
       |
-      +--> SportsDataProvider <--- DemoSportsDataProvider
+      v
+Casos de uso: ListFixtures / PredictFixture
       |
-      +--> ExplainableBaselineModel
+      +--> Puerto outbound: SportsDataPort
+      |          ^
+      |          |
+      |   DemoSportsDataAdapter
+      |   (futuro: API real)
       |
-      +--> Metrics: implied probability, edge, expected value
+      +--> Dominio: PredictionEngine + entidades
 ```
 
 ## Capas
 
 ### Dominio
 
-Contiene `Fixture`, `TeamStrength`, `Odds` y `Prediction`. No conoce HTTP ni proveedores concretos.
+`app/domain` contiene `Fixture`, `Odds`, `Prediction`, `Outcome` y `PredictionEngine`. No conoce HTTP, FastAPI ni proveedores concretos.
 
-### Proveedores
+### Aplicación
 
-`SportsDataProvider` es un puerto. El proveedor demo permite una ejecución estable para clase. Un adaptador real debe devolver la misma forma de datos y reportar la hora de actualización.
+`app/application/use_cases` contiene `ListFixtures` y `PredictFixture`. Cada caso de uso tiene una sola responsabilidad y recibe dependencias mediante puertos. `app/application/ports` define los contratos inbound y outbound.
 
-### Servicios
+### Adaptadores
 
-`PredictionEngine` calcula probabilidades a partir de fuerza relativa, forma y localía. La salida incluye factores, datos faltantes, confianza y versión del modelo.
+`app/adapters/inbound/http.py` convierte solicitudes HTTP en llamadas a casos de uso y traduce resultados a respuestas JSON. `app/adapters/outbound/demo_sports_data.py` implementa el puerto de datos con fixtures reproducibles.
 
-### API
+### Composición
 
-FastAPI serializa modelos, valida parámetros y publica OpenAPI en `/docs`. No existe endpoint de colocación de apuestas.
-
-### Interfaz
-
-El dashboard consume la API, muestra las tres probabilidades, una señal de valor orientativa y las advertencias. La decisión sigue siendo humana.
+`app/bootstrap.py` es el composition root: crea el proveedor, el motor y los casos de uso. `app/main.py` solo conecta el contenedor con el adaptador HTTP.
 
 ## Flujo de una predicción
 
-1. Solicitar un fixture.
-2. Cargar equipos, forma y cuotas.
-3. Convertir fuerza diferencial en puntuaciones.
-4. Normalizar a probabilidades 1X2.
-5. Calcular probabilidad implícita y edge.
-6. Generar explicación y confianza.
-7. Entregar respuesta auditable.
+1. HTTP recibe un `fixture_id`.
+2. El adaptador inbound invoca `PredictFixture.execute`.
+3. El caso de uso consulta `SportsDataPort`.
+4. El caso de uso entrega el fixture a `PredictionEngine`.
+5. El dominio calcula probabilidades, edge y explicación.
+6. El adaptador devuelve la respuesta auditable.
+
+## Regla de evolución
+
+Para agregar un proveedor real, crear un nuevo adaptador que implemente `SportsDataPort` y modificar únicamente `build_container`. Los casos de uso y el dominio no deben importar SDKs externos.

@@ -1,9 +1,9 @@
-"""Modelo baseline explicable para el MVP."""
+"""Servicio de dominio para calcular predicciones explicables."""
 from app.domain.models import Fixture, Outcome, Prediction
 
 
 class PredictionEngine:
-    """Calcula señales orientativas; no es un modelo validado para apuestas reales."""
+    """Reglas puras del baseline; no conoce HTTP, persistencia ni proveedores."""
 
     model_version = "baseline-v0.1"
 

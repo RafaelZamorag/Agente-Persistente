@@ -10,7 +10,9 @@
 - [x] T008 Añadir pruebas de endpoints principales.
 - [x] T009 Documentar arquitectura, operación y límites éticos.
 - [x] T010 Configurar GitHub Actions para pruebas.
-- [ ] T011 Implementar primer adaptador de datos reales con contrato y límites de uso.
-- [ ] T012 Incorporar backtesting con dataset histórico validado.
-- [ ] T013 Añadir persistencia de snapshots y auditoría.
-- [ ] T014 Comparar baseline contra modelos calibrados y publicar métricas.
+- [x] T011 Separar dominio, aplicación, puertos y adaptadores bajo arquitectura hexagonal.
+- [x] T012 Crear pruebas de casos de uso con dobles de prueba.
+- [ ] T013 Implementar primer adaptador de datos reales con contrato y límites de uso.
+- [ ] T014 Incorporar backtesting con dataset histórico validado.
+- [ ] T015 Añadir persistencia de snapshots y auditoría.
+- [ ] T016 Comparar baseline contra modelos calibrados y publicar métricas.

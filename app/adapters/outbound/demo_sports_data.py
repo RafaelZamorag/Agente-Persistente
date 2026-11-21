@@ -1,11 +1,12 @@
-"""Datos demo deterministas; no representan una fuente real ni consejo de apuesta."""
+"""Adaptador de salida demo para datos deportivos reproducibles."""
 from datetime import UTC, datetime, timedelta
 
 from app.domain.models import Fixture, Odds, TeamProfile
-from app.providers.base import SportsDataProvider
 
 
-class DemoSportsDataProvider(SportsDataProvider):
+class DemoSportsDataAdapter:
+    """Implementación demo del puerto SportsDataPort."""
+
     name = "demo-static-v1"
 
     def __init__(self) -> None:

@@ -18,8 +18,10 @@ El proyecto separa capacidades de alto nivel (skills) de herramientas técnicas 
 
 | Tool | Contrato actual | Uso |
 |---|---|---|
-| `DemoSportsDataProvider` | `list_fixtures`, `get_fixture` | Datos reproducibles para desarrollo y exposición. |
-| `PredictionEngine` | `predict(fixture, data_source)` | Motor determinista y explicable. |
+| `DemoSportsDataAdapter` | `list_fixtures`, `get_fixture` | Adaptador reproducible para desarrollo y exposición. |
+| `ListFixtures` | `execute()` | Caso de uso para consultar fixtures. |
+| `PredictFixture` | `execute(fixture_id)` | Caso de uso que orquesta datos y dominio. |
+| `PredictionEngine` | `predict(fixture, data_source)` | Servicio de dominio determinista y explicable. |
 | `GET /health` | Estado y versión | Observabilidad básica. |
 | `GET /api/v1/fixtures` | Lista de fixtures | Alimenta el dashboard. |
 | `GET /api/v1/predictions/{id}` | Predicción auditable | Devuelve probabilidades y explicación. |

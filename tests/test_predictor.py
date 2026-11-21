@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.domain.models import Fixture, Odds, Outcome, TeamProfile
-from app.services.predictor import PredictionEngine
+from app.domain.prediction_engine import PredictionEngine
 
 
 @pytest.fixture
